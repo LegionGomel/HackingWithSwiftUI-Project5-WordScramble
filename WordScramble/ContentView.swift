@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var errorTitle = ""
     @State private var errorMessage = ""
     @State private var showingError = false
+    @State private var score = 0
     
     var body: some View {
         NavigationView {
@@ -26,10 +27,15 @@ struct ContentView: View {
                 }
                 
                 Section {
-                    ForEach(usedWords, id: \.self) { word in
-                        HStack {
-                            Image(systemName: "\(word.count).circle")
-                            Text(word)
+                    VStack(alignment: .leading) {
+                        Text("Your score is \(score)")
+                            .font(.title2)
+                            .padding(.vertical)
+                        ForEach(usedWords, id: \.self) { word in
+                            HStack {
+                                Image(systemName: "\(word.count).circle")
+                                Text(word)
+                            }
                         }
                     }
                 }
@@ -42,6 +48,16 @@ struct ContentView: View {
             } message: {
                 Text(errorMessage)
             }
+            .toolbar(content: {
+                Button {
+                    usedWords.removeAll()
+                    newWord = ""
+                    score = 0
+                    startGame()
+                } label: {
+                    Text("Restart")
+                }
+            })
         }
     }
     
@@ -67,11 +83,16 @@ struct ContentView: View {
             wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
             return
         }
+        
+        guard isShortOrStartWord(word: answer) else {
+            wordError(title: "Disallowed word", message: "Starting word ol less than 3 letters")
+            return
+        }
 
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
-        
+        calculateScore()
         newWord = ""
     }
     
@@ -119,6 +140,22 @@ struct ContentView: View {
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
 
         return misspelledRange.location == NSNotFound
+    }
+    
+    func isShortOrStartWord(word: String) -> Bool {
+        if word == rootWord || word.count < 3 {
+            return false
+        }
+        return true
+    }
+    
+    func calculateScore() {
+        guard !usedWords.isEmpty else {
+            return
+        }
+        for usedWord in usedWords {
+            score += usedWord.count
+        }
     }
     
     func wordError(title: String, message: String) {
